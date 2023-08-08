@@ -1,0 +1,93 @@
+#version
+version: "3.8"
+
+#servicios
+services:
+  orion:
+    image: fiware/orion
+    hostname: orion
+    container_name: orion
+    depends_on:
+     - mongo-db
+    networks:
+     - default
+    expose:
+     - "1026"
+    ports:
+     - "1026:1026"
+    command: -dbhost mongo-db -logLevel DEBUG
+
+  mongo-db:
+    image: mongo:3.6
+    hostname: mongo-db
+    container_name: pepito
+    networks:
+     - default
+    expose:
+     - "27017"
+    ports:
+     - "27017:27017"
+    volumes:
+     - mongo-db:/data
+
+  quantumleap:
+    image: smartsdk/quantumleap
+    hostname: quantumleap
+    container_name: pepegrillo
+    expose:
+     - "8668"
+    ports:
+     - "8668:8668"
+    depends_on:
+     - crate-db
+    environment:
+     - CRATE_HOST=crate-db
+     - LOGLEVEL=DEBUG
+    networks:
+     - default
+
+  crate-db:
+    image: crate
+    hostname: crate-db
+    container_name: pinoccho
+    expose:
+     - "4200"
+     - "5432"
+    ports:
+     - "4200:4200"
+     - "5432:5432"
+     - "4300:4300"
+    volumes:
+     - crate-db:/data
+    environment:
+     - CRATE_HEAP_SIZE=1g
+    command: crate -Cauth.host_based.enabled=false -Ccluster.name=redtpi -Chttp.cors.enabled=true -Chttp.cors.allow-origin="*"
+    networks:
+     - default
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    depends_on:
+     - crate-db
+    expose:
+     - "3000"
+    ports:
+     - "3000:3000"
+    networks:
+     - default
+    volumes:
+      - grafana:/var/lib/grafana
+
+
+#redes
+networks:
+  default:
+    ipam:
+      config:
+       - subnet: 172.19.1.0/24
+#volumenes
+volumes:
+  mongo-db: ~
+  crate-db: ~
+  grafana: ~
